@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import os
 
 import numpy as np
@@ -9,25 +7,29 @@ import chainer
 import chainer.cuda
 from chainer import Variable
 
-def out_image(updater, enc, dec, rows, cols, seed, dst):
+def out_image(updater, enc, dec, rows, cols, seed, dst,generate_mode=False,test_iterator=None):
     @chainer.training.make_extension()
     def make_image(trainer):
         np.random.seed(seed)
         n_images = rows * cols
         xp = enc.xp
-        
+
         w_in = 256
         w_out = 256
         in_ch = 3
         out_ch = 3
-        
+
         in_all = np.zeros((n_images, in_ch, w_in, w_in)).astype("i")
         gt_all = np.zeros((n_images, out_ch, w_out, w_out)).astype("f")
         gen_all = np.zeros((n_images, out_ch, w_out, w_out)).astype("f")
-        
+
         for it in range(n_images):
-            batch = updater.get_iterator('test').next()
+            if test_iterator!=None:
+                batch = test_iterator.next()
+            else:
+                batch = updater.get_iterator('test').next()
             batchsize = len(batch)
+            print('bsize:'+str(batchsize))
 
             x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype("f")
             t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype("f")
@@ -39,12 +41,15 @@ def out_image(updater, enc, dec, rows, cols, seed, dst):
 
             z = enc(x_in)
             x_out = dec(z)
-            
-            in_all[it,:] = x_in.data.get()[0,:]
-            gt_all[it,:] = t_out.get()[0,:]
-            gen_all[it,:] = x_out.data.get()[0,:]
-        
-        
+
+            if generate_mode==False:
+                in_all[it,:] = x_in.data.get()[0,:]
+                gt_all[it,:] = t_out.get()[0,:]
+                gen_all[it,:] = x_out.data.get()[0,:]
+            else:
+                gen_all[it,:] = x_out.data[0,:]
+
+
         def save_image(x, name, mode=None):
             _, C, H, W = x.shape
             x = x.reshape((rows, cols, C, H, W))
@@ -60,17 +65,19 @@ def out_image(updater, enc, dec, rows, cols, seed, dst):
             if not os.path.exists(preview_dir):
                 os.makedirs(preview_dir)
             Image.fromarray(x, mode=mode).convert('RGB').save(preview_path)
-        
+
         x = np.asarray(np.clip(gen_all * 128 + 128, 0.0, 255.0), dtype=np.uint8)
+        print('save generated image!')
         save_image(x, "gen")
-        
-        x = np.ones((n_images, 3, w_in, w_in)).astype(np.uint8)*255
-        x[:,0,:,:] = 0
-        for i in range(3):
-            x[:,0,:,:] += np.uint8(15*i*in_all[:,i,:,:])
-        save_image(x, "in", mode='HSV')
-        
-        x = np.asarray(np.clip(gt_all * 128+128, 0.0, 255.0), dtype=np.uint8)
-        save_image(x, "gt")
-        
+
+        if generate_mode==False:
+            x = np.ones((n_images, 3, w_in, w_in)).astype(np.uint8)*255
+            x[:,0,:,:] = 0
+            for i in range(3):
+                x[:,0,:,:] += np.uint8(15*i*in_all[:,i,:,:])
+            save_image(x, "in", mode='HSV')
+
+            x = np.asarray(np.clip(gt_all * 128+128, 0.0, 255.0), dtype=np.uint8)
+            save_image(x, "gt")
+
     return make_image
