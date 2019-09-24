@@ -10,6 +10,7 @@ import chainer
 from chainer import training
 from chainer.training import extensions
 from chainer import serializers
+from chainer import datasets
 
 from net import Discriminator
 from net import Encoder
@@ -27,8 +28,12 @@ def main():
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU ID (negative value indicates CPU)')
-    parser.add_argument('--dataset', '-i', default='./facade/base',
+    parser.add_argument('--dataset', '-i', default='../../Image',
                         help='Directory of image files.')
+    parser.add_argument('--dataset_contour', '-c', default='../../Image_Contour',
+                        help='Directory of contour image files')
+    parser.add_argument('--data_num', '-n', type=int, default=400,
+                        help='number of data to use')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
@@ -47,9 +52,9 @@ def main():
     print('')
 
     # Set up a neural network to train
-    enc = Encoder(in_ch=12)
+    enc = Encoder(in_ch=3)
     dec = Decoder(out_ch=3)
-    dis = Discriminator(in_ch=12, out_ch=3)
+    dis = Discriminator(in_ch=3, out_ch=3)
     
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
@@ -67,12 +72,13 @@ def main():
     opt_dec = make_optimizer(dec)
     opt_dis = make_optimizer(dis)
 
-    train_d = FacadeDataset(args.dataset, data_range=(1,300))
-    test_d = FacadeDataset(args.dataset, data_range=(300,379))
-    #train_iter = chainer.iterators.MultiprocessIterator(train_d, args.batchsize, n_processes=4)
-    #test_iter = chainer.iterators.MultiprocessIterator(test_d, args.batchsize, n_processes=4)
-    train_iter = chainer.iterators.SerialIterator(train_d, args.batchsize)
-    test_iter = chainer.iterators.SerialIterator(test_d, args.batchsize)
+    print()
+    train_d, test_d = datasets.split_dataset_random(FacadeDataset(args.dataset, args.dataset_contour, args.data_num), args.data_num-100)
+    # test_d = FacadeDataset(args.dataset)
+    train_iter = chainer.iterators.MultiprocessIterator(train_d, args.batchsize, n_processes=14)
+    test_iter = chainer.iterators.MultiprocessIterator(test_d, args.batchsize, n_processes=14)
+    # train_iter = chainer.iterators.SerialIterator(train_d, args.batchsize)
+    # test_iter = chainer.iterators.SerialIterator(test_d, args.batchsize)
 
     # Set up a trainer
     updater = FacadeUpdater(
@@ -81,7 +87,7 @@ def main():
             'main': train_iter,
             'test': test_iter},
         optimizer={
-            'enc': opt_enc, 'dec': opt_dec, 
+            'enc': opt_enc, 'dec': opt_dec,
             'dis': opt_dis},
         device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
