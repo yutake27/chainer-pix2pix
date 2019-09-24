@@ -14,7 +14,7 @@ def get_Contour_img():
     for img_path in img_dir.iterdir():
         out_path = out_dir/img_path.name
         if not out_path.exists():
-            print('hello')
+            print(out_path)
             img = cv2.imread(str(img_path), 0)
             ret, img_thre = cv2.threshold(img, threshold, 255, cv2.THRESH_BINARY)
             img_thre = cv2.Canny(img_thre, 200, 300, apertureSize=3)
