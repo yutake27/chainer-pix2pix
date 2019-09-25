@@ -27,7 +27,6 @@ def main():
 
     print('GPU: {}'.format(args.gpu))
 
-    # Set up a neural network to train
     enc = Encoder(in_ch=3)
     dec = Decoder(out_ch=3)
     dis = Discriminator(in_ch=3, out_ch=3)
@@ -54,7 +53,7 @@ def main():
 
     os.mkdir('generate_tmp')
     shutil.copyfile(args.input,'generate_tmp/tmp.jpg')
-    test_d = FacadeDataset('generate_tmp/', 'generate_tmp/')
+    test_d = FacadeDataset('generate_tmp/', 'generate_tmp/', 1)
     test_iter = chainer.iterators.SerialIterator(test_d, 1)
 
 
