@@ -6,8 +6,9 @@ from PIL import Image
 import chainer
 import chainer.cuda
 from chainer import Variable
+from pathlib import Path
 
-def out_image(updater, enc, dec, rows, cols, seed, dst,generate_mode=False,test_iterator=None):
+def out_image(updater, enc, dec, rows, cols, seed, dst):
     @chainer.training.make_extension()
     def make_image(trainer):
         np.random.seed(seed)
@@ -24,12 +25,8 @@ def out_image(updater, enc, dec, rows, cols, seed, dst,generate_mode=False,test_
         gen_all = np.zeros((n_images, out_ch, w_out, w_out)).astype("f")
 
         for it in range(n_images):
-            if test_iterator!=None:
-                batch = test_iterator.next()
-            else:
-                batch = updater.get_iterator('test').next()
+            batch = updater.get_iterator('test').next()
             batchsize = len(batch)
-            print('bsize:'+str(batchsize))
 
             x_in = xp.zeros((batchsize, in_ch, w_in, w_in)).astype("f")
             t_out = xp.zeros((batchsize, out_ch, w_out, w_out)).astype("f")
@@ -42,13 +39,9 @@ def out_image(updater, enc, dec, rows, cols, seed, dst,generate_mode=False,test_
             z = enc(x_in)
             x_out = dec(z)
 
-            if generate_mode==False:
-                in_all[it,:] = x_in.data.get()[0,:]
-                gt_all[it,:] = t_out.get()[0,:]
-                gen_all[it,:] = x_out.data.get()[0,:]
-            else:
-                gen_all[it,:] = x_out.data[0,:]
-
+            in_all[it,:] = x_in.data.get()[0,:]
+            gt_all[it,:] = t_out.get()[0,:]
+            gen_all[it,:] = x_out.data.get()[0,:]
 
         def save_image(x, name, mode=None):
             _, C, H, W = x.shape
@@ -67,17 +60,44 @@ def out_image(updater, enc, dec, rows, cols, seed, dst,generate_mode=False,test_
             Image.fromarray(x, mode=mode).convert('RGB').save(preview_path)
 
         x = np.asarray(np.clip(gen_all * 128 + 128, 0.0, 255.0), dtype=np.uint8)
-        print('save generated image!')
         save_image(x, "gen")
 
-        if generate_mode==False:
-            x = np.ones((n_images, 3, w_in, w_in)).astype(np.uint8)*255
-            x[:,0,:,:] = 0
-            for i in range(3):
-                x[:,0,:,:] += np.uint8(15*i*in_all[:,i,:,:])
-            save_image(x, "in", mode='HSV')
+        x = np.ones((n_images, 3, w_in, w_in)).astype(np.uint8)*255
+        x[:,0,:,:] = 0
+        for i in range(3):
+            x[:,0,:,:] += np.uint8(15*i*in_all[:,i,:,:])
+        save_image(x, "in", mode='HSV')
 
-            x = np.asarray(np.clip(gt_all * 128+128, 0.0, 255.0), dtype=np.uint8)
-            save_image(x, "gt")
+        x = np.asarray(np.clip(gt_all * 128+128, 0.0, 255.0), dtype=np.uint8)
+        save_image(x, "gt")
 
     return make_image
+
+
+def generate_image(contour_path, enc, dec, out_dir_path):
+    label = Image.open(contour_path)
+    label = label.convert(mode='RGB')
+    size = 256
+    label = label.resize((size, size), Image.NEAREST)
+    label = np.asarray(label).astype('f').transpose(2,0,1)/128.0-1.0
+
+    xp = enc.xp
+    in_ch = 3
+
+    x_in = xp.zeros((1, in_ch, size, size)).astype('f')
+    x_in[0,:] = xp.asarray(label)
+    x_in = Variable(x_in)
+
+    z = enc(x_in)
+    x_out = dec(z)
+
+    x = x_out.data[0,:]
+    x = np.asarray(np.clip(x*128+128, 0.0, 255.0), dtype=np.uint8)
+    x = x.transpose(1,2,0)
+
+    out_dir_path = Path(out_dir_path)
+    out_dir_path.mkdir(parents=True, exist_ok=True)
+    filename = out_dir_path/Path(contour_path).name
+
+    print('generate: {}'.format(filename))
+    Image.fromarray(x).convert(mode='RGB').save(filename)

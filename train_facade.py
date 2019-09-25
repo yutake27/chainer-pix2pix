@@ -1,8 +1,6 @@
-#!/usr/bin/env python
-
-# python train_facade.py -g 0 -i ./facade/base --out result_facade --snapshot_interval 10000
-
 from __future__ import print_function
+import matplotlib
+matplotlib.use('Agg')
 import argparse
 import os
 
@@ -40,7 +38,7 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed')
-    parser.add_argument('--snapshot_interval', type=int, default=1000,
+    parser.add_argument('--snapshot_interval', type=int, default=10000,
                         help='Interval of snapshot')
     parser.add_argument('--display_interval', type=int, default=100,
                         help='Interval of displaying log to console')
@@ -72,11 +70,9 @@ def main():
     opt_dec = make_optimizer(dec)
     opt_dis = make_optimizer(dis)
 
-    print()
     train_d, test_d = datasets.split_dataset_random(FacadeDataset(args.dataset, args.dataset_contour, args.data_num), args.data_num-100)
-    # test_d = FacadeDataset(args.dataset)
-    train_iter = chainer.iterators.MultiprocessIterator(train_d, args.batchsize, n_processes=14)
-    test_iter = chainer.iterators.MultiprocessIterator(test_d, args.batchsize, n_processes=14)
+    train_iter = chainer.iterators.MultiprocessIterator(train_d, args.batchsize, repeat=True, shuffle=True, n_processes=14)
+    test_iter = chainer.iterators.MultiprocessIterator(test_d, args.batchsize, repeat=False, shuffle=False, n_processes=14)
     # train_iter = chainer.iterators.SerialIterator(train_d, args.batchsize)
     # test_iter = chainer.iterators.SerialIterator(test_d, args.batchsize)
 
@@ -101,13 +97,15 @@ def main():
         enc, 'enc_iter_{.updater.iteration}.npz'), trigger=snapshot_interval)
     trainer.extend(extensions.snapshot_object(
         dec, 'dec_iter_{.updater.iteration}.npz'), trigger=snapshot_interval)
-    trainer.extend(extensions.snapshot_object(
-        dis, 'dis_iter_{.updater.iteration}.npz'), trigger=snapshot_interval)
+    # trainer.extend(extensions.snapshot_object(
+    #     dis, 'dis_iter_{.updater.iteration}.npz'), trigger=snapshot_interval)
     trainer.extend(extensions.LogReport(trigger=display_interval))
     trainer.extend(extensions.PrintReport([
         'epoch', 'iteration', 'enc/loss', 'dec/loss', 'dis/loss',
     ]), trigger=display_interval)
     trainer.extend(extensions.ProgressBar(update_interval=10))
+    trainer.extend(extensions.PlotReport(['enc/loss', 'dec/loss', 'dis/loss'], 'epoch', file_name='loss.png'),
+                    trigger=snapshot_interval)
     trainer.extend(
         out_image(
             updater, enc, dec,

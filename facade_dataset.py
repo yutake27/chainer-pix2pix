@@ -19,25 +19,19 @@ class FacadeDataset(dataset_mixin.DatasetMixin):
             img = Image.open(img_path)
             label = Image.open(contourDir/img_path.name)
             label = label.convert(mode='RGB')
-            # resize images so that min(w, h) == 286
             size = 256
             img = img.resize((size, size), Image.BILINEAR)
             label = label.resize((size, size), Image.NEAREST)
-            
+
             img = np.asarray(img).astype('f').transpose(2,0,1)/128.0-1.0
             label = np.asarray(label).astype('f').transpose(2,0,1)/128.0-1.0
 
             self.dataset.append((img,label))
         print("load dataset done")
-    
+
     def __len__(self):
         return len(self.dataset)
 
     # return (label, img)
     def get_example(self, i, crop_width=256):
-        # _,h,w = self.dataset[i][0].shape
-        # x_l = np.random.randint(0,w-crop_width)
-        # x_r = x_l+crop_width
-        # y_l = np.random.randint(0,h-crop_width)
-        # y_r = y_l+crop_width
         return self.dataset[i][1], self.dataset[i][0]

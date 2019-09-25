@@ -10,7 +10,7 @@ from net import Decoder
 from updater import FacadeUpdater
 
 from facade_dataset import FacadeDataset
-from facade_visualizer import out_image
+from facade_visualizer import generate_image
 import shutil
 
 def main():
@@ -21,6 +21,9 @@ def main():
                         help='Random seed')
     parser.add_argument('--model', '-m', default='',
                         help='model snapshot')
+    parser.add_argument('--enc', '-e', type=str, help='encoder snapshot')
+    parser.add_argument('--dec', '-d', type=str, help='decoder snapshot')
+    parser.add_argument('--out', '-o', type=str, default='out', help='output dir')
     parser.add_argument('--input', '-i', default='sample.jpg',
                         help='input jpg')
     args = parser.parse_args()
@@ -44,34 +47,26 @@ def main():
         optimizer.add_hook(chainer.optimizer.WeightDecay(0.00001), 'hook_dec')
         return optimizer
 
-    opt_enc = make_optimizer(enc)
-    opt_dec = make_optimizer(dec)
-    opt_dis = make_optimizer(dis)
+    if args.model:
+        opt_enc = make_optimizer(enc)
+        opt_dec = make_optimizer(dec)
+        opt_dis = make_optimizer(dis)
 
-    if os.path.exists('generate_tmp'):
-        shutil.rmtree('generate_tmp')
+        # Set up a trainer
+        updater = FacadeUpdater(
+            models=(enc, dec, dis),
+            iterator={},
+            optimizer={
+                'enc': opt_enc, 'dec': opt_dec,
+                'dis': opt_dis},
+            device=args.gpu)
+        trainer = training.Trainer(updater, (200, 'epoch'), out='generate/')
+        chainer.serializers.load_npz(args.model, trainer)
+    elif args.enc and args.dec:
+        chainer.serializers.load_npz(args.enc, enc)
+        chainer.serializers.load_npz(args.dec, dec)
 
-    os.mkdir('generate_tmp')
-    shutil.copyfile(args.input,'generate_tmp/tmp.jpg')
-    test_d = FacadeDataset('generate_tmp/', 'generate_tmp/', 1)
-    test_iter = chainer.iterators.SerialIterator(test_d, 1)
-
-
-    # Set up a trainer
-    updater = FacadeUpdater(
-        models=(enc, dec, dis),
-        iterator={},
-        optimizer={
-            'enc': opt_enc, 'dec': opt_dec,
-            'dis': opt_dis},
-        device=args.gpu)
-    trainer = training.Trainer(updater, (200, 'epoch'), out='generate/')
-    chainer.serializers.load_npz(args.model, trainer)
-
-
-    out_image(
-        updater, enc, dec,
-        1, 1, args.seed, 'generate/',True,test_iter)(trainer)
+    generate_image(args.input, enc, dec, args.out)
 
 
 if __name__ == '__main__':
