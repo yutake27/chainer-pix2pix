@@ -38,9 +38,9 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed')
-    parser.add_argument('--snapshot_interval', type=int, default=10000,
-                        help='Interval of snapshot')
-    parser.add_argument('--display_interval', type=int, default=100,
+    parser.add_argument('--snapshot_interval', type=int, default=40,
+                        help='Interval epoch of snapshot')
+    parser.add_argument('--display_interval', type=int, default=1,
                         help='Interval of displaying log to console')
     args = parser.parse_args()
 
@@ -53,7 +53,7 @@ def main():
     enc = Encoder(in_ch=3)
     dec = Decoder(out_ch=3)
     dis = Discriminator(in_ch=3, out_ch=3)
-    
+
     if args.gpu >= 0:
         chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
         enc.to_gpu()  # Copy the model to the GPU
@@ -88,8 +88,8 @@ def main():
         device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
-    snapshot_interval = (args.snapshot_interval, 'iteration')
-    display_interval = (args.display_interval, 'iteration')
+    snapshot_interval = (args.snapshot_interval, 'epoch')
+    display_interval = (args.display_interval, 'epoch')
     trainer.extend(extensions.snapshot(
         filename='snapshot_iter_{.updater.iteration}.npz'),
                    trigger=snapshot_interval)
@@ -101,11 +101,11 @@ def main():
     #     dis, 'dis_iter_{.updater.iteration}.npz'), trigger=snapshot_interval)
     trainer.extend(extensions.LogReport(trigger=display_interval))
     trainer.extend(extensions.PrintReport([
-        'epoch', 'iteration', 'enc/loss', 'dec/loss', 'dis/loss',
+        'epoch', 'enc/loss', 'dec/loss', 'dis/loss',
     ]), trigger=display_interval)
     trainer.extend(extensions.ProgressBar(update_interval=10))
     trainer.extend(extensions.PlotReport(['enc/loss', 'dec/loss', 'dis/loss'], 'epoch', file_name='loss.png'),
-                    trigger=snapshot_interval)
+                    trigger=display_interval)
     trainer.extend(
         out_image(
             updater, enc, dec,

@@ -8,8 +8,8 @@ from chainer.dataset import dataset_mixin
 class FacadeDataset(dataset_mixin.DatasetMixin):
     def __init__(self, imgDir='../../Image', contourDir='../../Image_Contour', data_num = 400):
         print("load dataset start")
-        print("        Image from: {}".format(imgDir))
-        print("Contour Image from: {}".format(contourDir))
+        print("Original Image from: {}".format(imgDir))
+        print("Contour  Image from: {}".format(contourDir))
         print("Data num: {}".format(data_num))
         imgDir = Path(imgDir)
         contourDir = Path(contourDir)
