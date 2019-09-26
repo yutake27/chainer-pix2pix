@@ -19,9 +19,9 @@ class FacadeDataset(dataset_mixin.DatasetMixin):
             img = Image.open(img_path)
             label = Image.open(contourDir/img_path.name)
             label = label.convert(mode='RGB')
-            size = 256
-            img = img.resize((size, size), Image.BILINEAR)
-            label = label.resize((size, size), Image.NEAREST)
+            w_in = 512
+            img = img.resize((w_in, w_in), Image.BILINEAR)
+            label = label.resize((w_in, w_in), Image.NEAREST)
 
             img = np.asarray(img).astype('f').transpose(2,0,1)/128.0-1.0
             label = np.asarray(label).astype('f').transpose(2,0,1)/128.0-1.0

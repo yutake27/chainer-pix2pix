@@ -15,8 +15,8 @@ def out_image(updater, enc, dec, rows, cols, seed, dst):
         n_images = rows * cols
         xp = enc.xp
 
-        w_in = 256
-        w_out = 256
+        w_in = 512
+        w_out = 512
         in_ch = 3
         out_ch = 3
 
@@ -77,14 +77,14 @@ def out_image(updater, enc, dec, rows, cols, seed, dst):
 def generate_image(contour_path, enc, dec, out_dir_path):
     label = Image.open(contour_path)
     label = label.convert(mode='RGB')
-    size = 256
-    label = label.resize((size, size), Image.NEAREST)
+    w_in = 512
+    label = label.resize((w_in, w_in), Image.NEAREST)
     label = np.asarray(label).astype('f').transpose(2,0,1)/128.0-1.0
 
     xp = enc.xp
     in_ch = 3
 
-    x_in = xp.zeros((1, in_ch, size, size)).astype('f')
+    x_in = xp.zeros((1, in_ch, w_in, w_in)).astype('f')
     x_in[0,:] = xp.asarray(label)
     x_in = Variable(x_in)
 
