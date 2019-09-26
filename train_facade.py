@@ -47,6 +47,7 @@ def main():
     print('GPU: {}'.format(args.gpu))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
+    print('# snapshot interval: {}'.format(args.snapshot_interval))
     print('')
 
     # Set up a neural network to train
