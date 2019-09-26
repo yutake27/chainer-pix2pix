@@ -22,7 +22,7 @@ def main():
     parser = argparse.ArgumentParser(description='chainer implementation of pix2pix')
     parser.add_argument('--batchsize', '-b', type=int, default=1,
                         help='Number of images in each mini-batch')
-    parser.add_argument('--epoch', '-e', type=int, default=200,
+    parser.add_argument('--epoch', '-e', type=int, default=100,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', type=int, default=-1,
                         help='GPU ID (negative value indicates CPU)')
@@ -38,7 +38,7 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed')
-    parser.add_argument('--snapshot_interval', type=int, default=40,
+    parser.add_argument('--snapshot_interval', type=int, default=20,
                         help='Interval epoch of snapshot')
     parser.add_argument('--display_interval', type=int, default=1,
                         help='Interval of displaying log to console')
@@ -89,10 +89,6 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
     snapshot_interval = (args.snapshot_interval, 'epoch')
     display_interval = (args.display_interval, 'epoch')
-    enc_evaluator = extensions.Evaluator(test_iter, enc, device=args.gpu)
-    dec_evaluator = extensions.Evaluator(test_iter, dec, device=args.gpu)
-    trainer.extend(enc_evaluator, trigger=snapshot_interval)
-    trainer.extend(dec_evaluator, trigger=snapshot_interval)
     trainer.extend(extensions.snapshot(
         filename='snapshot_iter_{.updater.iteration}.npz'),
                    trigger=snapshot_interval)
@@ -104,7 +100,7 @@ def main():
     #     dis, 'dis_iter_{.updater.iteration}.npz'), trigger=snapshot_interval)
     trainer.extend(extensions.LogReport(trigger=display_interval))
     trainer.extend(extensions.PrintReport([
-        'epoch', 'iteration', 'enc/loss', 'dec/loss', 'dis/loss', 'validation/enc/loss', 'validation/dec/loss',
+        'epoch', 'iteration', 'enc/loss', 'dec/loss', 'dis/loss'
     ]), trigger=display_interval)
     trainer.extend(extensions.ProgressBar(update_interval=10))
     trainer.extend(extensions.PlotReport(['enc/loss', 'dec/loss', 'dis/loss'], 'epoch', file_name='loss.png'),
