@@ -87,9 +87,12 @@ def main():
             'dis': opt_dis},
         device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
-
     snapshot_interval = (args.snapshot_interval, 'epoch')
     display_interval = (args.display_interval, 'epoch')
+    enc_evaluator = extensions.Evaluator(test_iter, enc, device=args.gpu)
+    dec_evaluator = extensions.Evaluator(test_iter, dec, device=args.gpu)
+    trainer.extend(enc_evaluator, trigger=snapshot_interval)
+    trainer.extend(dec_evaluator, trigger=snapshot_interval)
     trainer.extend(extensions.snapshot(
         filename='snapshot_iter_{.updater.iteration}.npz'),
                    trigger=snapshot_interval)
@@ -101,7 +104,7 @@ def main():
     #     dis, 'dis_iter_{.updater.iteration}.npz'), trigger=snapshot_interval)
     trainer.extend(extensions.LogReport(trigger=display_interval))
     trainer.extend(extensions.PrintReport([
-        'epoch', 'iteration', 'enc/loss', 'dec/loss', 'dis/loss',
+        'epoch', 'iteration', 'enc/loss', 'dec/loss', 'dis/loss', 'validation/enc/loss', 'validation/dec/loss',
     ]), trigger=display_interval)
     trainer.extend(extensions.ProgressBar(update_interval=10))
     trainer.extend(extensions.PlotReport(['enc/loss', 'dec/loss', 'dis/loss'], 'epoch', file_name='loss.png'),
