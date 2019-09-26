@@ -72,7 +72,7 @@ def main():
 
     train_d, test_d = datasets.split_dataset_random(FacadeDataset(args.dataset, args.dataset_contour, args.data_num), args.data_num-100)
     train_iter = chainer.iterators.MultiprocessIterator(train_d, args.batchsize, repeat=True, shuffle=True, n_processes=14)
-    test_iter = chainer.iterators.MultiprocessIterator(test_d, args.batchsize, repeat=False, shuffle=False, n_processes=14)
+    test_iter = chainer.iterators.MultiprocessIterator(test_d, args.batchsize, repeat=True, shuffle=False, n_processes=14)
     # train_iter = chainer.iterators.SerialIterator(train_d, args.batchsize)
     # test_iter = chainer.iterators.SerialIterator(test_d, args.batchsize)
 
@@ -101,7 +101,7 @@ def main():
     #     dis, 'dis_iter_{.updater.iteration}.npz'), trigger=snapshot_interval)
     trainer.extend(extensions.LogReport(trigger=display_interval))
     trainer.extend(extensions.PrintReport([
-        'epoch', 'enc/loss', 'dec/loss', 'dis/loss',
+        'epoch', 'iteration', 'enc/loss', 'dec/loss', 'dis/loss',
     ]), trigger=display_interval)
     trainer.extend(extensions.ProgressBar(update_interval=10))
     trainer.extend(extensions.PlotReport(['enc/loss', 'dec/loss', 'dis/loss'], 'epoch', file_name='loss.png'),
