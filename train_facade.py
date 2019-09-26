@@ -70,11 +70,11 @@ def main():
     opt_dec = make_optimizer(dec)
     opt_dis = make_optimizer(dis)
 
-    train_d, test_d = datasets.split_dataset_random(FacadeDataset(args.dataset, args.dataset_contour, args.data_num), args.data_num-100)
-    train_iter = chainer.iterators.MultiprocessIterator(train_d, args.batchsize, repeat=True, shuffle=True, n_processes=14)
-    test_iter = chainer.iterators.MultiprocessIterator(test_d, args.batchsize, repeat=True, shuffle=False, n_processes=14)
-    # train_iter = chainer.iterators.SerialIterator(train_d, args.batchsize)
-    # test_iter = chainer.iterators.SerialIterator(test_d, args.batchsize)
+    train_d, test_d = datasets.split_dataset_random(FacadeDataset(args.dataset, args.dataset_contour, args.data_num), args.data_num-25)
+    #train_iter = chainer.iterators.MultiprocessIterator(train_d, args.batchsize, n_processes=14)
+    #test_iter = chainer.iterators.MultiprocessIterator(test_d, args.batchsize, n_processes=14)
+    train_iter = chainer.iterators.SerialIterator(train_d, args.batchsize, shuffle=True)
+    test_iter = chainer.iterators.SerialIterator(test_d, args.batchsize, shuffle=False)
 
     # Set up a trainer
     updater = FacadeUpdater(
