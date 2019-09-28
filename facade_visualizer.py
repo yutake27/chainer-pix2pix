@@ -74,7 +74,7 @@ def out_image(updater, enc, dec, rows, cols, seed, dst):
     return make_image
 
 
-def generate_image(contour_path, enc, dec, out_dir_path):
+def generate_image_from_contour(contour_path, enc, dec, out_dir_path):
     label = Image.open(contour_path)
     label = label.convert(mode='RGB')
     w_in = 512

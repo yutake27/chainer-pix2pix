@@ -10,8 +10,7 @@ from net import Decoder
 from updater import FacadeUpdater
 
 from facade_dataset import FacadeDataset
-from facade_visualizer import generate_image
-import shutil
+from facade_visualizer import generate_image_from_contour
 
 def main():
     parser = argparse.ArgumentParser(description='chainer implementation of pix2pix')
@@ -21,11 +20,11 @@ def main():
                         help='Random seed')
     parser.add_argument('--model', '-m', default='',
                         help='model snapshot')
-    parser.add_argument('--enc', '-e', type=str, help='encoder snapshot')
-    parser.add_argument('--dec', '-d', type=str, help='decoder snapshot')
+    parser.add_argument('--enc', '-e', type=str, default='enc_iter_60000.npz', help='encoder snapshot')
+    parser.add_argument('--dec', '-d', type=str, default='dec_iter_60000.npz', help='decoder snapshot')
     parser.add_argument('--out', '-o', type=str, default='out', help='output dir')
-    parser.add_argument('--input', '-i', default='sample.jpg',
-                        help='input jpg')
+    parser.add_argument('--input', '-i', default='sample.jpg', help='input jpg', required=True)
+    parser.add_argument('--contour', '-c', action='store_true', help='from contour image or not')
     args = parser.parse_args()
 
     print('GPU: {}'.format(args.gpu))
@@ -66,8 +65,11 @@ def main():
         chainer.serializers.load_npz(args.enc, enc)
         chainer.serializers.load_npz(args.dec, dec)
 
-    generate_image(args.input, enc, dec, args.out)
+    if not args.contour:
+        from make_contour import get_contour_image
+        get_contour_image(args.input)
 
+    generate_image_from_contour(args.input, enc, dec, args.out)
 
 if __name__ == '__main__':
     main()
